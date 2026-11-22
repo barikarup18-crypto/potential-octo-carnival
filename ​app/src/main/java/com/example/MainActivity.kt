@@ -1,12 +1,19 @@
 package com.example
 
-import android.graphics.Color
 import android.os.Bundle
-import android.widget.ScrollView
-import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.ui.CartoonStudioScreen
 import com.example.ui.theme.CartoonStudioTheme
 import java.io.PrintWriter
@@ -14,27 +21,32 @@ import java.io.StringWriter
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        val crashLog = mutableStateOf<String?>(null)
         Thread.setDefaultUncaughtExceptionHandler { _, e ->
             val sw = StringWriter()
             e.printStackTrace(PrintWriter(sw))
-            val msg = sw.toString()
-            runOnUiThread {
-                val tv = TextView(this).apply {
-                    text = "APP CRASH LOG:\n\n$msg"
-                    setTextColor(Color.RED)
-                    setBackgroundColor(Color.WHITE)
-                    setPadding(32, 64, 32, 32)
-                    textSize = 12f
-                }
-                setContentView(ScrollView(this).apply { addView(tv) })
-            }
-            try { Thread.sleep(60000) } catch (_: Exception) {}
+            crashLog.value = sw.toString()
         }
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
-            CartoonStudioTheme {
-                CartoonStudioScreen()
+            val err = crashLog.value
+            if (err != null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "APP CRASH LOG:\n\n$err",
+                        color = Color.Red,
+                        fontSize = 12.sp
+                    )
+                }
+            } else {
+                CartoonStudioTheme {
+                    CartoonStudioScreen()
+                }
             }
         }
     }
