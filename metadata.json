@@ -1,0 +1,6 @@
+{
+  "name": "কার্টুন স্টুডিও",
+  "description": "বাংলা ২ডি কার্টুন তৈরি করার মোবাইল অ্যাপ — চরিত্র, ব্যাকগ্রাউন্ড, সংলাপ, বাংলা ভয়েসওভার ও ভিডিও এক্সপোর্ট।",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
