@@ -19,15 +19,16 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Clean hidden characters and fix missing keystore/fonts/google-services
+      - name: Clean hidden characters and auto-generate missing resources/keystore
         run: |
           python3 -c '
-          import os, json, re, subprocess
+          import os, json, re, subprocess, base64
           for root, dirs, files in os.walk(".", topdown=False):
               for name in files + dirs:
                   clean = name.replace("\u200b", "").replace("\u200c", "").replace("\u200d", "").replace("\ufeff", "").strip()
                   if clean != name and clean:
                       os.rename(os.path.join(root, name), os.path.join(root, clean))
+          strings, drawables, xmls = set(["app_name"]), set(), set(["data_extraction_rules", "backup_rules", "file_paths"])
           for root, dirs, files in os.walk("."):
               for f in files:
                   if f.endswith((".kt", ".java", ".xml", ".kts", ".gradle", ".toml")):
@@ -40,10 +41,46 @@ jobs:
                               ntxt = re.sub(r"FontFamily\s*\(\s*Font\s*\([^)]+\)\s*\)", "FontFamily.Default", ntxt)
                           if ntxt != txt:
                               open(p, "w", encoding="utf-8").write(ntxt)
+                          strings.update(re.findall(r"R\.string\.([A-Za-z0-9_]+)", ntxt))
+                          strings.update(re.findall(r"@string/([A-Za-z0-9_]+)", ntxt))
+                          drawables.update(re.findall(r"R\.drawable\.([A-Za-z0-9_]+)", ntxt))
+                          drawables.update(re.findall(r"@drawable/([A-Za-z0-9_]+)", ntxt))
+                          xmls.update(re.findall(r"@xml/([A-Za-z0-9_]+)", ntxt))
                       except Exception:
                           pass
-          gs = {"project_info":{"project_number":"123456789","project_id":"demo-app"},"client":[{"client_info":{"mobilesdk_app_id":"1:123456789:android:123456","android_client_info":{"package_name":"com.aistudio.cartoonstudio.bngkrx"}},"api_key":[{"current_key":"AIzaSyDummyKeyForBuild12345"}]}]}
+          res = "app/src/main/res"
           if os.path.exists("app"):
+              for d in ["values", "xml", "drawable", "mipmap-anydpi-v26"]:
+                  os.makedirs(os.path.join(res, d), exist_ok=True)
+              s_path = os.path.join(res, "values/strings.xml")
+              if not os.path.exists(s_path):
+                  with open(s_path, "w") as out:
+                      out.write("<resources>\n")
+                      for s in sorted(strings):
+                          val = "CartoonStudio" if s == "app_name" else s.replace("_", " ").title()
+                          out.write(f"    <string name=\"{s}\">{val}</string>\n")
+                      out.write("</resources>\n")
+              t_path = os.path.join(res, "values/themes.xml")
+              if not os.path.exists(t_path):
+                  open(t_path, "w").write("<resources>\n    <style name=\"Theme.MyApplication\" parent=\"android:Theme.Material.Light.NoActionBar\" />\n</resources>\n")
+              for x in xmls:
+                  xp = os.path.join(res, f"xml/{x}.xml")
+                  if not os.path.exists(xp):
+                      if "file_paths" in x:
+                          open(xp, "w").write("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<paths>\n    <cache-path name=\"cache\" path=\".\" />\n    <files-path name=\"files\" path=\".\" />\n    <external-path name=\"external\" path=\".\" />\n</paths>\n")
+                      elif "data_extraction" in x:
+                          open(xp, "w").write("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<data-extraction-rules><cloud-backup/><device-transfer/></data-extraction-rules>\n")
+                      else:
+                          open(xp, "w").write("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<full-backup-content/>\n")
+              for dr in drawables:
+                  dp = os.path.join(res, f"drawable/{dr}.xml")
+                  if not os.path.exists(dp) and not os.path.exists(os.path.join(res, f"drawable/{dr}.png")):
+                      open(dp, "w").write("<vector xmlns:android=\"http://schemas.android.com/apk/res/android\" android:width=\"24dp\" android:height=\"24dp\" android:viewportWidth=\"24\" android:viewportHeight=\"24\"><path android:fillColor=\"#FF6200EE\" android:pathData=\"M12,2A10,10 0 1,0 22,12A10,10 0 0,0 12,2Z\"/></vector>\n")
+              for ic in ["ic_launcher", "ic_launcher_round"]:
+                  ip = os.path.join(res, f"mipmap-anydpi-v26/{ic}.xml")
+                  if not os.path.exists(ip):
+                      open(ip, "w").write("<adaptive-icon xmlns:android=\"http://schemas.android.com/apk/res/android\"><background android:drawable=\"@android:color/holo_blue_dark\"/><foreground android:drawable=\"@android:drawable/ic_dialog_info\"/></adaptive-icon>\n")
+              gs = {"project_info":{"project_number":"123456789","project_id":"demo-app"},"client":[{"client_info":{"mobilesdk_app_id":"1:123456789:android:123456","android_client_info":{"package_name":"com.aistudio.cartoonstudio.bngkrx"}},"api_key":[{"current_key":"AIzaSyDummyKeyForBuild12345"}]}]}
               json.dump(gs, open("app/google-services.json", "w"))
               for ks in ["debug.keystore", "app/debug.keystore"]:
                   if not os.path.exists(ks):
@@ -59,9 +96,9 @@ jobs:
       - name: Build Debug APK
         run: |
           if [ -f "./gradlew" ]; then
-            ./gradlew assembleDebug
+            ./gradlew assembleDebug --no-configuration-cache
           else
-            gradle assembleDebug
+            gradle assembleDebug --no-configuration-cache
           fi
 
       - name: Upload Debug APK
