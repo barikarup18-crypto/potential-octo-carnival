@@ -1,5 +1,8 @@
 package com.example
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,28 +12,41 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.CartoonStudioScreen
 import com.example.ui.theme.CartoonStudioTheme
+import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        val crashLog = mutableStateOf<String?>(null)
-        Thread.setDefaultUncaughtExceptionHandler { _, e ->
+        super.onCreate(savedInstanceState)
+        val logFile = File(filesDir, "last_crash.txt")
+        val previousCrash = if (logFile.exists()) {
+            val txt = logFile.readText()
+            logFile.delete()
+            txt
+        } else null
+
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
             val sw = StringWriter()
             e.printStackTrace(PrintWriter(sw))
-            crashLog.value = sw.toString()
+            val msg = sw.toString()
+            try {
+                logFile.writeText(msg)
+                val cb = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                cb.setPrimaryClip(ClipData.newPlainText("Crash", msg))
+            } catch (_: Exception) {}
+            defaultHandler?.uncaughtException(t, e)
         }
-        super.onCreate(savedInstanceState)
+
         setContent {
-            val err = crashLog.value
-            if (err != null) {
+            if (previousCrash != null) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -38,7 +54,7 @@ class MainActivity : ComponentActivity() {
                         .padding(16.dp)
                 ) {
                     Text(
-                        text = "APP CRASH LOG:\n\n$err",
+                        text = "LAST CRASH LOG:\n\n$previousCrash",
                         color = Color.Red,
                         fontSize = 12.sp
                     )
