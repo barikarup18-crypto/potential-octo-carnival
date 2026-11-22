@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = "CartoonStudio"
 
 include(":app")
+project(":app").projectDir = file("app ")
