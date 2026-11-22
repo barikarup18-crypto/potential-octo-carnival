@@ -33,7 +33,7 @@ jobs:
                               open(p, "w", encoding="utf-8").write(ntxt)
                       except Exception:
                           pass
-          gs = {"project_info":{"project_number":"123456789","project_id":"demo-app"},"client":[{"client_info":{"mobilesdk_app_id":"1:123456789:android:123456","android_client_info":{"package_name":"com.aistudio.cartoonstudio.bnghrs"}},"api_key":[{"current_key":"AIzaSyDummyKeyForBuild12345"}]}]}
+          gs = {"project_info":{"project_number":"123456789","project_id":"demo-app"},"client":[{"client_info":{"mobilesdk_app_id":"1:123456789:android:123456","android_client_info":{"package_name":"com.aistudio.cartoonstudio.bngkrx"}},"api_key":[{"current_key":"AIzaSyDummyKeyForBuild12345"}]}]}
           if os.path.exists("app"):
               json.dump(gs, open("app/google-services.json", "w"))
           '
