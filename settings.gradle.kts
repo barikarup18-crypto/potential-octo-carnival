@@ -25,4 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = "CartoonStudio"
 
 include(":app")
-project(":app").projectDir = rootDir.listFiles()?.first { it.isDirectory && it.name.trim() == "app" } ?: file("app")
+project(":app").projectDir = rootDir.listFiles()?.first { it.isDirectory && java.io.File(it, "build.gradle.kts").exists() } ?: file("app")
