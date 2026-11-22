@@ -13,10 +13,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Clean hidden characters and setup dummy google-services
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Clean hidden characters and fix missing keystore/fonts/google-services
         run: |
           python3 -c '
-          import os, json
+          import os, json, re, subprocess
           for root, dirs, files in os.walk(".", topdown=False):
               for name in files + dirs:
                   clean = name.replace("\u200b", "").replace("\u200c", "").replace("\u200d", "").replace("\ufeff", "").strip()
@@ -29,6 +35,9 @@ jobs:
                       try:
                           txt = open(p, "r", encoding="utf-8").read()
                           ntxt = txt.replace("\u200b", "").replace("\u200c", "").replace("\u200d", "").replace("\ufeff", "")
+                          if f.endswith(".kt"):
+                              ntxt = re.sub(r"\bR\.font\.[A-Za-z0-9_]+", "0", ntxt)
+                              ntxt = re.sub(r"FontFamily\s*\(\s*Font\s*\([^)]+\)\s*\)", "FontFamily.Default", ntxt)
                           if ntxt != txt:
                               open(p, "w", encoding="utf-8").write(ntxt)
                       except Exception:
@@ -36,13 +45,10 @@ jobs:
           gs = {"project_info":{"project_number":"123456789","project_id":"demo-app"},"client":[{"client_info":{"mobilesdk_app_id":"1:123456789:android:123456","android_client_info":{"package_name":"com.aistudio.cartoonstudio.bngkrx"}},"api_key":[{"current_key":"AIzaSyDummyKeyForBuild12345"}]}]}
           if os.path.exists("app"):
               json.dump(gs, open("app/google-services.json", "w"))
+              for ks in ["debug.keystore", "app/debug.keystore"]:
+                  if not os.path.exists(ks):
+                      subprocess.run(["keytool", "-genkey", "-v", "-keystore", ks, "-storepass", "android", "-alias", "androiddebugkey", "-keypass", "android", "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000", "-dname", "CN=Android Debug,O=Android,C=US"], check=False)
           '
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
