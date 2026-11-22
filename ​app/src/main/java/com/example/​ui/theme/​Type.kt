@@ -2,25 +2,12 @@ package com.example.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import com.example.R
 
-val BalooDa2FontFamily = FontFamily(
-    Font(R.font.baloo_da_2, FontWeight.Normal),
-    Font(R.font.baloo_da_2, FontWeight.Medium),
-    Font(R.font.baloo_da_2, FontWeight.SemiBold),
-    Font(R.font.baloo_da_2, FontWeight.Bold)
-)
-
-val HindSiliguriFontFamily = FontFamily(
-    Font(R.font.hind_siliguri, FontWeight.Normal),
-    Font(R.font.hind_siliguri, FontWeight.Medium),
-    Font(R.font.hind_siliguri, FontWeight.SemiBold),
-    Font(R.font.hind_siliguri, FontWeight.Bold)
-)
+val BalooDa2FontFamily = FontFamily.Default
+val HindSiliguriFontFamily = FontFamily.Default
 
 val Typography = Typography(
     displaySmall = TextStyle(
@@ -44,8 +31,8 @@ val Typography = Typography(
     titleLarge = TextStyle(
         fontFamily = BalooDa2FontFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 19.sp,
-        lineHeight = 25.sp
+        fontSize = 18.sp,
+        lineHeight = 24.sp
     ),
     titleMedium = TextStyle(
         fontFamily = HindSiliguriFontFamily,
@@ -81,11 +68,11 @@ val Typography = Typography(
         fontFamily = HindSiliguriFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
-        lineHeight = 18.sp
+        lineHeight = 20.sp
     ),
     labelMedium = TextStyle(
         fontFamily = HindSiliguriFontFamily,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 16.sp
     ),
@@ -93,6 +80,6 @@ val Typography = Typography(
         fontFamily = HindSiliguriFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
-        lineHeight = 14.sp
+        lineHeight = 16.sp
     )
 )
