@@ -19,7 +19,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Clean hidden characters, generate resources and add crash screen
+      - name: Clean hidden characters, generate resources and hook universal crash screen
         run: |
           python3 -c '
           import os, json, re, subprocess
@@ -38,26 +38,32 @@ jobs:
                           ntxt = txt.replace("\u200b", "").replace("\u200c", "").replace("\u200d", "").replace("\ufeff", "")
                           if f.endswith(".kt"):
                               ntxt = re.sub(r"FirebaseApp\.initializeApp\s*\([^)]*\)", "try { FirebaseApp.initializeApp(this) } catch (e: Exception) {}", ntxt)
-                              if "class MainActivity" in ntxt and "setDefaultUncaughtExceptionHandler" not in ntxt:
-                                  crash_hook = """super.onCreate(savedInstanceState)
+                              if "override fun onCreate" in ntxt and "setDefaultUncaughtExceptionHandler" not in ntxt:
+                                  crash_hook = """override fun onCreate(savedInstanceState: android.os.Bundle?) {
                   Thread.setDefaultUncaughtExceptionHandler { _, e ->
                       val sw = java.io.StringWriter()
                       e.printStackTrace(java.io.PrintWriter(sw))
                       val msg = sw.toString()
+                      try {
+                          val f = java.io.File(filesDir, "crash.txt")
+                          f.writeText(msg)
+                      } catch (_: Exception) {}
                       runOnUiThread {
-                          val tv = android.widget.TextView(this).apply {
-                              text = "APP CRASH LOG:\\n\\n" + msg
-                              setTextColor(android.graphics.Color.RED)
-                              setBackgroundColor(android.graphics.Color.WHITE)
-                              setPadding(32, 64, 32, 32)
-                              textSize = 12f
-                          }
-                          val sv = android.widget.ScrollView(this).apply { addView(tv) }
-                          setContentView(sv)
+                          try {
+                              val tv = android.widget.TextView(this).apply {
+                                  text = "CRASH DETAILS:\\n\\n" + msg
+                                  setTextColor(android.graphics.Color.RED)
+                                  setBackgroundColor(android.graphics.Color.WHITE)
+                                  setPadding(32, 64, 32, 32)
+                                  textSize = 11f
+                              }
+                              val sv = android.widget.ScrollView(this).apply { addView(tv) }
+                              setContentView(sv)
+                          } catch (_: Exception) {}
                       }
-                      Thread.sleep(60000)
+                      try { Thread.sleep(30000) } catch (_: Exception) {}
                   }"""
-                                  ntxt = ntxt.replace("super.onCreate(savedInstanceState)", crash_hook, 1)
+                                  ntxt = re.sub(r"override\s+fun\s+onCreate\s*\([^)]*\)\s*\{", crash_hook, ntxt, count=1)
                           if ntxt != txt:
                               open(p, "w", encoding="utf-8").write(ntxt)
                           strings.update(re.findall(r"R\.string\.([A-Za-z0-9_]+)", ntxt))
