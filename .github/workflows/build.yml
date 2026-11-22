@@ -19,7 +19,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Clean hidden characters and prevent startup crash
+      - name: Clean hidden characters, generate real font XMLs and prevent crash
         run: |
           python3 -c '
           import os, json, re, subprocess
@@ -28,7 +28,7 @@ jobs:
                   clean = name.replace("\u200b", "").replace("\u200c", "").replace("\u200d", "").replace("\ufeff", "").strip()
                   if clean != name and clean:
                       os.rename(os.path.join(root, name), os.path.join(root, clean))
-          strings, drawables, xmls = set(["app_name"]), set(), set(["data_extraction_rules", "backup_rules", "file_paths"])
+          strings, drawables, xmls, fonts = set(["app_name"]), set(), set(["data_extraction_rules", "backup_rules", "file_paths"]), set()
           for root, dirs, files in os.walk("."):
               for f in files:
                   if f.endswith((".kt", ".java", ".xml", ".kts", ".gradle", ".toml")):
@@ -37,10 +37,7 @@ jobs:
                           txt = open(p, "r", encoding="utf-8").read()
                           ntxt = txt.replace("\u200b", "").replace("\u200c", "").replace("\u200d", "").replace("\ufeff", "")
                           if f.endswith(".kt"):
-                              ntxt = re.sub(r"FontFamily\s*\(\s*Font\s*\([^)]+\)\s*\)", "FontFamily.Default", ntxt)
-                              ntxt = re.sub(r"Font\s*\(\s*R\.font\.[A-Za-z0-9_]+\s*\)", "Font(android.R.font.sans_serif)", ntxt)
-                              ntxt = re.sub(r"\bR\.font\.[A-Za-z0-9_]+", "android.R.font.sans_serif", ntxt)
-                              ntxt = re.sub(r"FirebaseApp\.initializeApp\s*\([^)]*\)", "// disabled dummy firebase", ntxt)
+                              ntxt = re.sub(r"FirebaseApp\.initializeApp\s*\([^)]*\)", "try { FirebaseApp.initializeApp(this) } catch (e: Exception) {}", ntxt)
                           if ntxt != txt:
                               open(p, "w", encoding="utf-8").write(ntxt)
                           strings.update(re.findall(r"R\.string\.([A-Za-z0-9_]+)", ntxt))
@@ -48,12 +45,18 @@ jobs:
                           drawables.update(re.findall(r"R\.drawable\.([A-Za-z0-9_]+)", ntxt))
                           drawables.update(re.findall(r"@drawable/([A-Za-z0-9_]+)", ntxt))
                           xmls.update(re.findall(r"@xml/([A-Za-z0-9_]+)", ntxt))
+                          fonts.update(re.findall(r"R\.font\.([A-Za-z0-9_]+)", ntxt))
+                          fonts.update(re.findall(r"@font/([A-Za-z0-9_]+)", ntxt))
                       except Exception:
                           pass
           res = "app/src/main/res"
           if os.path.exists("app"):
-              for d in ["values", "xml", "drawable", "mipmap-anydpi-v26"]:
+              for d in ["values", "xml", "drawable", "mipmap-anydpi-v26", "font"]:
                   os.makedirs(os.path.join(res, d), exist_ok=True)
+              for fn in fonts:
+                  fp = os.path.join(res, f"font/{fn}.xml")
+                  if not os.path.exists(fp):
+                      open(fp, "w").write("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<font-family xmlns:android=\"http://schemas.android.com/apk/res/android\" />\n")
               s_path = os.path.join(res, "values/strings.xml")
               if not os.path.exists(s_path):
                   with open(s_path, "w") as out:
